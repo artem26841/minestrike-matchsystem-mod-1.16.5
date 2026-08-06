@@ -1,8 +1,6 @@
 package com.example.examplemod;
 
 import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.potion.EffectInstance;
-import net.minecraft.potion.Effects;
 import net.minecraft.world.GameType;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
@@ -42,7 +40,8 @@ public class DeathAndRoundHandler {
             player.getServer().execute(() -> {
                 if (player.isAlive()) {
                     player.setGameMode(GameType.SPECTATOR);
-                    player.addPotionEffect(new EffectInstance(Effects.BLINDNESS, 999999, 255, false, false));
+                    // Обходим баг эффектов: накладываем слепоту через ванильную команду сервера
+                    player.getServer().getCommandManager().handleCommand(player.getCommandSource(), "effect give " + player.getGameProfile().getName() + " minecraft:blindness 999999 255 true");
                 }
             });
         }
