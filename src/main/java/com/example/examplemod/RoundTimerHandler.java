@@ -2,6 +2,7 @@ package com.example.examplemod;
 
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.text.ChatType;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -45,13 +46,13 @@ public class RoundTimerHandler {
         else { timerStr = timerColor + formatTime(roundTimeLeft); }
         
         String hudText = "§6§lT §7[" + MatchSystem.tPoints + "] §7| " + timerStr + " §7| §7[" + MatchSystem.ctPoints + "] §b§lCT";
-        RoundManager.getMatchPlayers().forEach(p -> p.sendStatusMessage(new StringTextComponent(hudText), true));
+        RoundManager.getMatchPlayers().forEach(p -> p.sendMessage(new StringTextComponent(hudText), ChatType.GAME_INFO, p.getUUID()));
     }
 
     @SubscribeEvent
     public static void onPlayerDisconnect(PlayerEvent.PlayerLoggedOutEvent event) {
         if (!MatchSystem.isModEnabled || !MatchSystem.isMatchStarted || !MatchSystem.isRoundActive) return;
-        UUID uuid = event.getPlayer().getUniqueID();
+        UUID uuid = event.getPlayer().getUUID();
         if (MatchSystem.T_TEAM.contains(uuid) || MatchSystem.CT_TEAM.contains(uuid)) {
             if (!MatchSystem.isPaused) {
                 RoundManager.togglePause();
