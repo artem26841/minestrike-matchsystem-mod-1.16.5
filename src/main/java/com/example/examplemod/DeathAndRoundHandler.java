@@ -1,6 +1,8 @@
 package com.example.examplemod;
 
 import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.potion.EffectInstance;
+import net.minecraft.potion.Effects;
 import net.minecraft.world.GameType;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
@@ -17,15 +19,14 @@ public class DeathAndRoundHandler {
         if (!MatchSystem.isModEnabled || !MatchSystem.isMatchStarted || !MatchSystem.isRoundActive) return;
         if (event.getEntity() instanceof ServerPlayerEntity) {
             ServerPlayerEntity victim = (ServerPlayerEntity) event.getEntity();
-            UUID victimUUID = victim.getUUID();
-
+            UUID victimUUID = victim.getUniqueID();
             if (!MatchSystem.T_TEAM.contains(victimUUID) && !MatchSystem.CT_TEAM.contains(victimUUID)) return;
 
             DEAD_PLAYERS.add(victimUUID);
-            if (event.getSource().getEntity() instanceof ServerPlayerEntity) {
-                ServerPlayerEntity killer = (ServerPlayerEntity) event.getSource().getEntity();
-                if (!killer.getUUID().equals(victimUUID)) {
-                    StatsManager.addKill(killer.getUUID());
+            if (event.getSource().getTrueSource() instanceof ServerPlayerEntity) {
+                ServerPlayerEntity killer = (ServerPlayerEntity) event.getSource().getTrueSource();
+                if (!killer.getUniqueID().equals(victimUUID)) {
+                    StatsManager.addKill(killer.getUniqueID());
                 }
             }
             RoundManager.broadcastMessage("§7[MineStrike] " + victim.getGameProfile().getName() + " was killed!");
@@ -37,13 +38,13 @@ public class DeathAndRoundHandler {
     public static void onPlayerRespawn(PlayerEvent.PlayerRespawnEvent event) {
         if (!MatchSystem.isModEnabled || !MatchSystem.isMatchStarted) return;
         ServerPlayerEntity player = (ServerPlayerEntity) event.getPlayer();
-        UUID uuid = player.getUUID();
+        UUID uuid = player.getUniqueID();
         
         if (DEAD_PLAYERS.contains(uuid)) {
             player.getServer().execute(() -> {
                 if (player.isAlive()) {
                     player.setGameMode(GameType.SPECTATOR);
-                    player.getServer().getCommandManager().handleCommand(player.getCommandSource(), "effect give " + player.getGameProfile().getName() + " minecraft:blindness 999999 255 true");
+                    player.addPotionEffect(new EffectInstance(Effects.BLINDNESS, 999999, 255, false, false));
                 }
             });
         }
