@@ -21,10 +21,8 @@ public class RoundManager {
         List<ServerPlayerEntity> list = new ArrayList<>();
         if (ServerLifecycleHooks.getCurrentServer() == null) return list;
         for (ServerPlayerEntity p : ServerLifecycleHooks.getCurrentServer().getPlayerList().getPlayers()) {
-            UUID id = p.getUniqueID();
-            if (MatchSystem.T_TEAM.contains(id) || MatchSystem.CT_TEAM.contains(id) || MatchSystem.SPECTATORS.contains(id) || MatchSystem.MATCH_ADMINS.contains(id)) {
-                list.add(p);
-            }
+            UUID id = p.getUUID();
+            if (MatchSystem.T_TEAM.contains(id) || MatchSystem.CT_TEAM.contains(id) || MatchSystem.SPECTATORS.contains(id) || MatchSystem.MATCH_ADMINS.contains(id)) { list.add(p); }
         }
         return list;
     }
@@ -89,8 +87,7 @@ public class RoundManager {
         } else {
             broadcastMessage("§a[MineStrike] MATCH RESUMED!");
             for (ServerPlayerEntity player : getMatchPlayers()) {
-                server.getCommandManager().handleCommand(server.getCommandSource(), "effect clear " + player.getGameProfile().getName() + " minecraft:blindness");
-                server.getCommandManager().handleCommand(server.getCommandSource(), "effect clear " + player.getGameProfile().getName() + " minecraft:slowness");
+                server.getCommandManager().handleCommand(server.getCommandSource(), "effect clear " + player.getGameProfile().getName());
             }
         }
     }
@@ -105,24 +102,14 @@ public class RoundManager {
         if (MatchSystem.tPoints >= MatchSystem.configMaxPoints) {
             MatchSystem.matchEndTime = System.currentTimeMillis();
             sendBigTitle("title @a title \"§6§lTERRORISTS WIN THE MATCH\"", "title @a subtitle \"§fScore: §6" + MatchSystem.tPoints + " §7- §b" + MatchSystem.ctPoints + "\"");
-            playVictoryEffects();
-            printFinalStatistics("TERRORISTS (T)");
-            forceStopMatch();
-            return;
+            playVictoryEffects(); printFinalStatistics("TERRORISTS (T)"); forceStopMatch(); return;
         } else if (MatchSystem.ctPoints >= MatchSystem.configMaxPoints) {
             MatchSystem.matchEndTime = System.currentTimeMillis();
             sendBigTitle("title @a title \"§b§lCOUNTER-TERRORISTS WIN THE MATCH\"", "title @a subtitle \"§fScore: §6" + MatchSystem.tPoints + " §7- §b" + MatchSystem.ctPoints + "\"");
-            playVictoryEffects();
-            printFinalStatistics("COUNTER-TERRORISTS (CT)");
-            forceStopMatch();
-            return;
+            playVictoryEffects(); printFinalStatistics("COUNTER-TERRORISTS (CT)"); forceStopMatch(); return;
         }
 
-        if (MatchSystem.isAutoMode) {
-            RoundTimerHandler.freezeTimeLeft = MatchSystem.configFreezeTime;
-            RoundTimerHandler.isFreezePeriod = true;
-            startNewRound();
-        }
+        if (MatchSystem.isAutoMode) { RoundTimerHandler.freezeTimeLeft = MatchSystem.configFreezeTime; RoundTimerHandler.isFreezePeriod = true; startNewRound(); }
     }
 
     private static void printFinalStatistics(String winnerName) {
@@ -130,30 +117,16 @@ public class RoundManager {
         String startStr = sdf.format(new Date(MatchSystem.matchStartTime));
         String endStr = sdf.format(new Date(MatchSystem.matchEndTime));
         long diff = MatchSystem.matchEndTime - MatchSystem.matchStartTime;
-        long mins = (diff / 1000) / 60;
-        long secs = (diff / 1000) % 60;
+        long mins = (diff / 1000) / 60; long secs = (diff / 1000) % 60;
 
-        StringBuilder sb = new StringBuilder("\n§6=================================\n");
-        sb.append("§e🏆 §lFINAL MATCH STATISTICS §e🏆\n\n");
-        sb.append("§eWinner: §l").append(winnerName).append("\n");
-        sb.append("§7Start Time: §f").append(startStr).append("\n");
-        sb.append("§7End Time: §f").append(endStr).append("\n");
-        sb.append("§7Duration: §f").append(mins).append("m ").append(secs).append("s\n\n");
-        sb.append("§e§lFINAL PLAYER KILLS:\n");
-
+        StringBuilder sb = new StringBuilder("\n§6=================================\n§e🏆 §lFINAL MATCH STATISTICS §e🏆\n\n§eWinner: §l" + winnerName + "\n§7Start Time: §f" + startStr + "\n§7End Time: §f" + endStr + "\n§7Duration: §f" + mins + "m " + secs + "s\n\n§e§lFINAL PLAYER KILLS:\n");
         MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
-        getMatchPlayers().forEach(p -> {
-            int kills = StatsManager.getKills(p.getUniqueID());
-            String color = MatchSystem.T_TEAM.contains(p.getUniqueID()) ? "§6" : "§b";
-            sb.append(color).append(p.getGameProfile().getName()).append("§0: §l").append(kills).append("\n");
-        });
-        sb.append("§6=================================");
-        broadcastMessage(sb.toString());
+        getMatchPlayers().forEach(p -> { int kills = StatsManager.getKills(p.getUUID()); String color = MatchSystem.T_TEAM.contains(p.getUUID()) ? "§6" : "§b"; sb.append(color).append(p.getGameProfile().getName()).append("§0: §l").append(kills).append("\n"); });
+        sb.append("§6================================="); broadcastMessage(sb.toString());
     }
 
     private static void playVictoryEffects() {
-        MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
-        if (server == null) return;
+        MinecraftServer server = ServerLifecycleHooks.getCurrentServer(); if (server == null) return;
         for (ServerPlayerEntity player : server.getPlayerList().getPlayers()) {
             server.getCommandManager().handleCommand(server.getCommandSource(), "playsound minecraft:ui.toast.challenge_complete master " + player.getGameProfile().getName());
             server.getCommandManager().handleCommand(server.getCommandSource(), "playsound minecraft:entity.firework_rocket.blast master " + player.getGameProfile().getName());
@@ -162,80 +135,45 @@ public class RoundManager {
 
     private static void sendBigTitle(String cmd1, String cmd2) {
         MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
-        if (server != null) {
-            server.getCommandManager().handleCommand(server.getCommandSource(), cmd1);
-            server.getCommandManager().handleCommand(server.getCommandSource(), cmd2);
-        }
+        if (server != null) { server.getCommandManager().handleCommand(server.getCommandSource(), cmd1); server.getCommandManager().handleCommand(server.getCommandSource(), cmd2); }
     }
 
     public static void startNewRound() {
-        DeathAndRoundHandler.DEAD_PLAYERS.clear();
-        RoundTimerHandler.roundTimeLeft = MatchSystem.configRoundTime;
-        RoundTimerHandler.freezeTimeLeft = MatchSystem.configFreezeTime;
-        RoundTimerHandler.isFreezePeriod = true;
-        MatchSystem.isRoundActive = true;
-        MatchSystem.isPaused = false;
-        resetPlayersToSpawn();
-        broadcastMessage("§a[MineStrike] New round started!");
+        DeathAndRoundHandler.DEAD_PLAYERS.clear(); RoundTimerHandler.roundTimeLeft = MatchSystem.configRoundTime; RoundTimerHandler.freezeTimeLeft = MatchSystem.configFreezeTime;
+        RoundTimerHandler.isFreezePeriod = true; MatchSystem.isRoundActive = true; MatchSystem.isPaused = false; resetPlayersToSpawn(); broadcastMessage("§a[MineStrike] New round started!");
     }
 
     public static void resetPlayersToSpawn() {
-        MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
-        if (server == null) return;
+        MinecraftServer server = ServerLifecycleHooks.getCurrentServer(); if (server == null) return;
         for (ServerPlayerEntity player : getMatchPlayers()) {
             player.getServer().execute(() -> {
-                player.setGameMode(GameType.SURVIVAL);
-                server.getCommandManager().handleCommand(server.getCommandSource(), "effect clear " + player.getGameProfile().getName());
+                player.setGameMode(GameType.SURVIVAL); server.getCommandManager().handleCommand(server.getCommandSource(), "effect clear " + player.getGameProfile().getName());
                 net.minecraft.util.math.BlockPos spawnPos = player.getServerWorld().getSpawnPoint();
-                String cmd = "teleport " + player.getGameProfile().getName() + " " + spawnPos.getX() + " " + spawnPos.getY() + " " + spawnPos.getZ(); 
-                server.getCommandManager().handleCommand(server.getCommandSource(), cmd);
+                server.getCommandManager().handleCommand(server.getCommandSource(), "teleport " + player.getGameProfile().getName() + " " + spawnPos.getX() + " " + spawnPos.getY() + " " + spawnPos.getZ());
             });
         }
     }
 
     public static void forceStopMatch() {
-        MatchSystem.isMatchStarted = false;
-        MatchSystem.isRoundActive = false;
-        MatchSystem.isPaused = false;
-        MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
-        if (server == null) return;
-        for (ServerPlayerEntity p : getMatchPlayers()) {
-            server.getCommandManager().handleCommand(server.getCommandSource(), "effect clear " + p.getGameProfile().getName());
-        }
+        MatchSystem.isMatchStarted = false; MatchSystem.isRoundActive = false; MatchSystem.isPaused = false; MinecraftServer server = ServerLifecycleHooks.getCurrentServer(); if (server == null) return;
+        for (ServerPlayerEntity p : getMatchPlayers()) { server.getCommandManager().handleCommand(server.getCommandSource(), "effect clear " + p.getGameProfile().getName()); }
     }
 
-    public static void broadcastMessage(String text) {
-        getMatchPlayers().forEach(p -> p.sendMessage(new StringTextComponent(text), p.getUniqueID()));
-    }
+    public static void broadcastMessage(String text) { getMatchPlayers().forEach(p -> p.sendMessage(new StringTextComponent(text), p.getUUID())); }
 }
 
 class StatsManager {
     private static final Map<UUID, Integer> playerKills = new HashMap<>();
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-
     public static void addKill(UUID uuid) { playerKills.put(uuid, playerKills.getOrDefault(uuid, 0) + 1); }
     public static int getKills(UUID uuid) { return playerKills.getOrDefault(uuid, 0); }
     public static void resetStats() { playerKills.clear(); saveStatsToFile(); }
-
     public static void saveStatsToFile() {
-        File configFile = new File(FMLPaths.CONFIGDIR.get().toFile(), "matchsystem/session.json");
-        JsonObject rootJson = new JsonObject();
-        rootJson.addProperty("t_score", MatchSystem.tPoints);
-        rootJson.addProperty("ct_score", MatchSystem.ctPoints);
-        rootJson.addProperty("config_round_time", MatchSystem.configRoundTime);
-        rootJson.addProperty("config_freeze_time", MatchSystem.configFreezeTime);
-        rootJson.addProperty("config_max_points", MatchSystem.configMaxPoints);
-        JsonObject playersJson = new JsonObject();
-        MatchSystem.T_TEAM.forEach(uuid -> addPlayerStat(playersJson, uuid, "T"));
-        MatchSystem.CT_TEAM.forEach(uuid -> addPlayerStat(playersJson, uuid, "CT"));
-        rootJson.add("players_statistics", playersJson);
-        try (FileWriter writer = new FileWriter(configFile)) { GSON.toJson(rootJson, writer); } catch (IOException ignored) {}
+        File configFile = new File(FMLPaths.CONFIGDIR.get().toFile(), "matchsystem/session.json"); JsonObject rootJson = new JsonObject();
+        rootJson.addProperty("t_score", MatchSystem.tPoints); rootJson.addProperty("ct_score", MatchSystem.ctPoints);
+        rootJson.addProperty("config_round_time", MatchSystem.configRoundTime); rootJson.addProperty("config_freeze_time", MatchSystem.configFreezeTime); rootJson.addProperty("config_max_points", MatchSystem.configMaxPoints);
+        JsonObject playersJson = new JsonObject(); MatchSystem.T_TEAM.forEach(uuid -> addPlayerStat(playersJson, uuid, "T")); MatchSystem.CT_TEAM.forEach(uuid -> addPlayerStat(playersJson, uuid, "CT"));
+        rootJson.add("players_statistics", playersJson); try (FileWriter writer = new FileWriter(configFile)) { GSON.toJson(rootJson, writer); } catch (IOException ignored) {}
     }
-
-    private static void addPlayerStat(JsonObject json, UUID uuid, String team) {
-        JsonObject pStat = new JsonObject();
-        pStat.addProperty("team", team);
-        pStat.addProperty("kills", playerKills.getOrDefault(uuid, 0));
-        json.add(uuid.toString(), pStat);
-    }
+    private static void addPlayerStat(JsonObject json, UUID uuid, String team) { JsonObject pStat = new JsonObject(); pStat.addProperty("team", team); pStat.addProperty("kills", playerKills.getOrDefault(uuid, 0)); json.add(uuid.toString(), pStat); }
 }
