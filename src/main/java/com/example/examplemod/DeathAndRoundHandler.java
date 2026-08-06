@@ -17,13 +17,16 @@ public class DeathAndRoundHandler {
         if (!MatchSystem.isModEnabled || !MatchSystem.isMatchStarted || !MatchSystem.isRoundActive) return;
         if (event.getEntity() instanceof ServerPlayerEntity) {
             ServerPlayerEntity victim = (ServerPlayerEntity) event.getEntity();
-            UUID victimUUID = victim.getUniqueID();
+            UUID victimUUID = victim.getUUID();
+
             if (!MatchSystem.T_TEAM.contains(victimUUID) && !MatchSystem.CT_TEAM.contains(victimUUID)) return;
 
             DEAD_PLAYERS.add(victimUUID);
-            if (event.getSource().getTrueSource() instanceof ServerPlayerEntity) {
-                ServerPlayerEntity killer = (ServerPlayerEntity) event.getSource().getTrueSource();
-                if (!killer.getUniqueID().equals(victimUUID)) { StatsManager.addKill(killer.getUniqueID()); }
+            if (event.getSource().getEntity() instanceof ServerPlayerEntity) {
+                ServerPlayerEntity killer = (ServerPlayerEntity) event.getSource().getEntity();
+                if (!killer.getUUID().equals(victimUUID)) {
+                    StatsManager.addKill(killer.getUUID());
+                }
             }
             RoundManager.broadcastMessage("§7[MineStrike] " + victim.getGameProfile().getName() + " was killed!");
             checkWinConditions();
@@ -34,13 +37,12 @@ public class DeathAndRoundHandler {
     public static void onPlayerRespawn(PlayerEvent.PlayerRespawnEvent event) {
         if (!MatchSystem.isModEnabled || !MatchSystem.isMatchStarted) return;
         ServerPlayerEntity player = (ServerPlayerEntity) event.getPlayer();
-        UUID uuid = player.getUniqueID();
+        UUID uuid = player.getUUID();
         
         if (DEAD_PLAYERS.contains(uuid)) {
             player.getServer().execute(() -> {
                 if (player.isAlive()) {
                     player.setGameMode(GameType.SPECTATOR);
-                    // Обходим баг эффектов: накладываем слепоту через ванильную команду сервера
                     player.getServer().getCommandManager().handleCommand(player.getCommandSource(), "effect give " + player.getGameProfile().getName() + " minecraft:blindness 999999 255 true");
                 }
             });
