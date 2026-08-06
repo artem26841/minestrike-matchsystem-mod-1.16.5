@@ -4,14 +4,11 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import net.minecraft.entity.player.ServerPlayerEntity;
-import net.minecraft.potion.EffectInstance;
-import net.minecraft.potion.Effects;
 import net.minecraft.world.GameType;
 import net.minecraftforge.fml.loading.FMLPaths;
 import net.minecraftforge.fml.server.ServerLifecycleHooks;
 import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.util.SoundCategory;
-import net.minecraft.util.SoundEvents;
 import net.minecraft.server.MinecraftServer;
 import java.io.File;
 import java.io.FileWriter;
@@ -81,17 +78,19 @@ public class RoundManager {
 
     public static void togglePause() {
         MatchSystem.isPaused = !MatchSystem.isPaused;
+        MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
+        if (server == null) return;
         if (MatchSystem.isPaused) {
             broadcastMessage("§c[MineStrike] MATCH PAUSED!");
             for (ServerPlayerEntity player : getMatchPlayers()) {
-                player.addPotionEffect(new EffectInstance(Effects.BLINDNESS, 999999, 255, false, false));
-                player.addPotionEffect(new EffectInstance(Effects.SLOWNESS, 999999, 255, false, false));
+                server.getCommandManager().handleCommand(server.getCommandSource(), "effect give " + player.getGameProfile().getName() + " minecraft:blindness 999999 255 true");
+                server.getCommandManager().handleCommand(server.getCommandSource(), "effect give " + player.getGameProfile().getName() + " minecraft:slowness 999999 255 true");
             }
         } else {
             broadcastMessage("§a[MineStrike] MATCH RESUMED!");
             for (ServerPlayerEntity player : getMatchPlayers()) {
-                player.removePotionEffect(Effects.BLINDNESS);
-                player.removePotionEffect(Effects.SLOWNESS);
+                server.getCommandManager().handleCommand(server.getCommandSource(), "effect clear " + player.getGameProfile().getName() + " minecraft:blindness");
+                server.getCommandManager().handleCommand(server.getCommandSource(), "effect clear " + player.getGameProfile().getName() + " minecraft:slowness");
             }
         }
     }
@@ -156,8 +155,8 @@ public class RoundManager {
         MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
         if (server == null) return;
         for (ServerPlayerEntity player : server.getPlayerList().getPlayers()) {
-            player.connection.sendPacket(new net.minecraft.network.play.server.SPlaySoundPacket("ui.toast.challenge_complete", SoundCategory.MASTER, player.getPositionVec(), 1.0F, 1.0F));
-            player.connection.sendPacket(new net.minecraft.network.play.server.SPlaySoundPacket("entity.firework_rocket.blast", SoundCategory.MASTER, player.getPositionVec(), 1.0F, 1.0F));
+            server.getCommandManager().handleCommand(server.getCommandSource(), "playsound minecraft:ui.toast.challenge_complete master " + player.getGameProfile().getName());
+            server.getCommandManager().handleCommand(server.getCommandSource(), "playsound minecraft:entity.firework_rocket.blast master " + player.getGameProfile().getName());
         }
     }
 
@@ -186,11 +185,10 @@ public class RoundManager {
         for (ServerPlayerEntity player : getMatchPlayers()) {
             player.getServer().execute(() -> {
                 player.setGameMode(GameType.SURVIVAL);
-                player.removePotionEffect(Effects.BLINDNESS);
-                player.removePotionEffect(Effects.SLOWNESS);
-                
+                server.getCommandManager().handleCommand(server.getCommandSource(), "effect clear " + player.getGameProfile().getName());
                 net.minecraft.util.math.BlockPos spawnPos = player.getServerWorld().getSpawnPoint();
-                player.teleport(player.getServerWorld(), spawnPos.getX() + 0.5, spawnPos.getY(), spawnPos.getZ() + 0.5, player.rotationYaw, player.rotationPitch);
+                String cmd = "teleport " + player.getGameProfile().getName() + " " + spawnPos.getX() + " " + spawnPos.getY() + " " + spawnPos.getZ(); 
+                server.getCommandManager().handleCommand(server.getCommandSource(), cmd);
             });
         }
     }
@@ -199,9 +197,10 @@ public class RoundManager {
         MatchSystem.isMatchStarted = false;
         MatchSystem.isRoundActive = false;
         MatchSystem.isPaused = false;
+        MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
+        if (server == null) return;
         for (ServerPlayerEntity p : getMatchPlayers()) {
-            p.removePotionEffect(Effects.BLINDNESS);
-            p.removePotionEffect(Effects.SLOWNESS);
+            server.getCommandManager().handleCommand(server.getCommandSource(), "effect clear " + p.getGameProfile().getName());
         }
     }
 
